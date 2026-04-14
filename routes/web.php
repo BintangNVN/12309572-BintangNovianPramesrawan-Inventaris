@@ -19,7 +19,7 @@ Route::get('/', function () {
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth');
 
-//  DASHBOARD GLOBAL (BIAR GA ERROR)
+// Validasi Role
 Route::middleware('auth')->get('/dashboard', function () {
     if (auth()->user()->role === 'admin') {
         return redirect('/admin/dashboard');
@@ -30,14 +30,14 @@ Route::middleware('auth')->get('/dashboard', function () {
     return redirect('/');
 })->name('dashboard');
 
-// ADMIN
+// ADMIN DASHBOARD
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     Route::get('/dashboard', function () {
         return view('admin.dashboard');
     })->name('admin.dashboard');
 });
 
-//  STAFF
+//  STAFF DASHBOARD
 Route::middleware(['auth', 'role:staff'])->prefix('staff')->group(function () {
     Route::get('/dashboard', function () {
         return view('staff.dashboard');
@@ -65,6 +65,7 @@ Route::prefix('items')->middleware(['auth', 'role:admin'])->group(function () {
 })->name('items.export');
 
 });
+// Show Item di Staff
 Route::get('/lendings/item/{id}', [LendingController::class, 'showByItem'])
     ->name('lendings.showByItem');
 
@@ -95,11 +96,12 @@ Route::prefix('operators')->middleware(['auth', 'role:admin'])->group(function (
     Route::get('/', [OperatorController::class, 'index'])->name('operators.index');
     Route::get('/create', [OperatorController::class, 'create'])->name('operators.create');
     Route::post('/{id}/reset-password', [OperatorController::class, 'resetPassword'])->name('operators.resetPassword');
+    Route::delete('/operators/{id}', [OperatorController::class, 'destroy'])->name('operators.destroy');
 });
 Route::get('/{id}/edit', [OperatorController::class, 'edit'])->name('operators.edit');
 Route::put('/{id}', [OperatorController::class, 'update'])->name('operators.update');
 
-
+// Lendings Page
 Route::prefix('lendings')->middleware(['auth', 'role:staff'])->group(function(){
     Route::get('/', [LendingController::class, 'index'])->name('lendings.index');
     Route::get('/create', [LendingController::class, 'create'])->name('lendings.create');

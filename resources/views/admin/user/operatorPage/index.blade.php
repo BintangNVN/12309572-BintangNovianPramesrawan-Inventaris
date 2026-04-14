@@ -46,9 +46,13 @@
                                             <i class="fa-solid fa-pen"></i> Reset Password
                                         </button>
                                     </form>
-                                    <a href="#" class="btn btn-sm btn-outline-danger">
-                                        <i class="fa-solid fa-trash"></i> Delete
-                                    </a>
+                                    <form action="{{ route('operators.destroy', $operator->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus data ini?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="fa-solid fa-trash"></i> Delete
+                                        </button>
+                                    </form>
                                 </div>
                             </td>
                         </tr>
