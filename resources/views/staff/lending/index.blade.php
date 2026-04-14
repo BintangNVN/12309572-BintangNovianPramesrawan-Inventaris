@@ -46,50 +46,59 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse ($lendings as $index => $lending)
+                    @php $no = 1; @endphp
+
+                    @forelse ($lendings as $lending)
                         @foreach($lending->items as $item)
                             <tr>
-                                @if($loop->first)
-                                    <td class="text-center text-muted" rowspan="{{ $lending->items->count() }}">{{ $index + 1 }}</td>
-                                @endif
+                                <td class="text-center text-muted">{{ $no++ }}</td>
                                 <td>{{ $item->name }}</td>
                                 <td>{{ $item->pivot->total }}</td>
-                                @if($loop->first)
-                                    <td rowspan="{{ $lending->items->count() }}">{{ $lending->name }}</td>
-                                    <td class="text-center" rowspan="{{ $lending->items->count() }}">{{ $lending->keterangan ?? '-' }}</td>
-                                    <td class="text-center" rowspan="{{ $lending->items->count() }}">{{ $lending->date ? $lending->date->format('Y-m-d') : '-' }}</td>
-                                    <td class="text-center" rowspan="{{ $lending->items->count() }}">
+                                <td>{{ $lending->name }}</td>
+                                <td class="text-center">{{ $lending->keterangan ?? '-' }}</td>
+                                <td class="text-center">
+                                    {{ $lending->date ? $lending->date->format('Y-m-d') : '-' }}
+                                </td>
+                                <td class="text-center">
+                                    @if(!$lending->returned)
+                                        <span class="badge bg-warning text-dark">
+                                            not returned
+                                        </span>
+                                    @else
+                                        <span class="badge bg-success">
+                                            {{ $lending->return_date ? $lending->return_date->format('d F, Y') : 'returned' }}
+                                        </span>
+                                    @endif
+                                </td>
+                                <td class="text-center font-weight-bold">
+                                    {{ $lending->edited_by ?? '-' }}
+                                </td>
+                                <td class="text-center">
+                                    <div class="d-flex justify-content-center align-items-center gap-2 flex-wrap">
+
                                         @if(!$lending->returned)
-                                            <span class="badge bg-warning text-dark">
-                                                not returned
-                                            </span>
-                                        @else
-                                            <span class="badge bg-success">
-                                                {{ $lending->return_date ? $lending->return_date->format('d F, Y') : 'returned' }}
-                                            </span>
-                                        @endif
-                                    </td>
-                                    <td class="text-center font-weight-bold" rowspan="{{ $lending->items->count() }}">{{ $lending->edited_by ?? '-' }}</td>
-                                    <td class="text-center d-flex gap-1 justify-content-center" rowspan="{{ $lending->items->count() }}">
-                                        @if(!$lending->returned)
-                                            <form action="{{ route('lendings.update', $lending->id) }}" method="POST" class="d-inline">
+                                            <form action="{{ route('lendings.update', $lending->id) }}" method="POST" class="m-0">
                                                 @csrf
                                                 @method('PUT')
-                                                <button type="submit" name="mark_returned" value="1" class="btn btn-sm btn-success">
-                                                    Returned
+                                                <button type="submit" name="mark_returned" value="1"
+                                                        class="btn btn-sm btn-success d-flex align-items-center gap-1">
+                                                    <i class="fa-solid fa-check"></i> Returned
                                                 </button>
                                             </form>
                                         @endif
 
-                                        <form action="{{ route('lendings.destroy', $lending->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus peminjaman ini?');">
+                                        <form action="{{ route('lendings.destroy', $lending->id) }}" method="POST" class="m-0"
+                                            onsubmit="return confirm('Hapus peminjaman ini?');">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <button type="submit"
+                                                    class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1">
                                                 <i class="fa-solid fa-trash"></i> Delete
                                             </button>
                                         </form>
-                                    </td>
-                                @endif
+
+                                    </div>
+                                </td>
                             </tr>
                         @endforeach
                     @empty

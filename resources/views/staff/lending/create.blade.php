@@ -27,7 +27,7 @@
 
         <h5 class="fw-bold mb-3">Lending Form</h5>
         <p class="text-muted small">
-            Please <span class="text-danger">fill all</span> input form with right value.
+            Please <span class="text-danger">.fill-all</span> input form with right value.
         </p>
         @if(session('success'))
             <div class="alert alert-success">
@@ -122,7 +122,7 @@ let itemsOptions = `
     <option value="">-- Select Items --</option>
     @foreach($items as $item)
         <option value="{{ $item->id }}">
-            {{ $item->name }} (stok: {{ $item->total }})
+            {{ $item->name }}
         </option>
     @endforeach
 `;
