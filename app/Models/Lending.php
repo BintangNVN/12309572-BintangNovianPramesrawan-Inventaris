@@ -14,6 +14,8 @@ class Lending extends Model
         'returned',
         'return_date',
         'edited_by',
+        'borrow_sign',
+        'return_sign',
     ];
 
     protected $casts = [

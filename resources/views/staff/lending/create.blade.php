@@ -18,6 +18,12 @@
             color: red;
             font-weight: bold;
         }
+    .signature-pad {
+        border: 1px solid #ced4da;
+        border-radius: 8px;
+        background: #fff;
+        touch-action: none;
+    }
     </style>
 </head>
 <body>
@@ -109,6 +115,22 @@
                 @enderror
             </div>
 
+            <!-- BORROW SIGNATURE -->
+            <div class="mb-4">
+                <label class="form-label">Tanda Tangan Peminjam</label>
+                <div class="mb-2">
+                    <canvas id="signature-pad" width="600" height="200" class="w-100 signature-pad"></canvas>
+                </div>
+                <div class="d-flex gap-2 mb-2">
+                    <button type="button" id="clear-signature" class="btn btn-secondary btn-sm">Clear</button>
+                    <span class="text-muted align-self-center">Gambar tanda tangan di kotak di atas.</span>
+                </div>
+                <input type="hidden" name="borrow_sign" id="borrow_sign" value="{{ old('borrow_sign') }}">
+                @error('borrow_sign')
+                    <div class="text-danger small mt-1">{{ $message }}</div>
+                @enderror
+            </div>
+
             <button class="btn btn-primary">Submit</button>
             <a href="{{ route('lendings.index') }}" class="btn btn-secondary">Kembali</a>
         </form>
@@ -165,6 +187,56 @@ function addItemRow(selectedItem = '', quantity = '') {
 
 document.getElementById('add-more').addEventListener('click', function () {
     addItemRow();
+});
+
+const canvas = document.getElementById('signature-pad');
+const signatureInput = document.getElementById('borrow_sign');
+const clearSignature = document.getElementById('clear-signature');
+const ctx = canvas.getContext('2d');
+let drawing = false;
+let lastPoint = { x: 0, y: 0 };
+
+canvas.addEventListener('pointerdown', function (event) {
+    drawing = true;
+    lastPoint = { x: event.offsetX, y: event.offsetY };
+});
+
+canvas.addEventListener('pointermove', function (event) {
+    if (!drawing) return;
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(lastPoint.x, lastPoint.y);
+    ctx.lineTo(event.offsetX, event.offsetY);
+    ctx.stroke();
+    lastPoint = { x: event.offsetX, y: event.offsetY };
+});
+
+canvas.addEventListener('pointerup', function () {
+    drawing = false;
+});
+
+canvas.addEventListener('pointerleave', function () {
+    drawing = false;
+});
+
+clearSignature.addEventListener('click', function () {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    signatureInput.value = '';
+});
+
+const form = document.querySelector('form');
+form.addEventListener('submit', function (event) {
+    if (!signatureInput.value) {
+        const dataUrl = canvas.toDataURL('image/png');
+        if (dataUrl === 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAn8B9Z0MyhAAAAAASUVORK5CYII=') {
+            event.preventDefault();
+            alert('Mohon isi tanda tangan peminjam terlebih dahulu.');
+            return;
+        }
+        signatureInput.value = dataUrl;
+    }
 });
 
 // Restore old inputs after validation error

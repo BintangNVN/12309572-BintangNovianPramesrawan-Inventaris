@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Lending;
 use App\Models\Item;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\LendingExport;
@@ -14,10 +15,19 @@ class LendingController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
+        $query = Lending::with('items');
 
-       $lendings = Lending::with('items')->get();
+        if ($request->has('start_date') && $request->start_date != '') {
+            $query->whereDate('date', '>=', $request->start_date);
+        }
+        
+        if ($request->has('end_date') && $request->end_date != '') {
+            $query->whereDate('date', '<=', $request->end_date);
+        }
+
+        $lendings = $query->latest('date')->get();
         return view('staff.lending.index', compact('lendings'));
     }
 
@@ -42,6 +52,7 @@ class LendingController extends Controller
             'total' => 'required|array',
             'total.*' => 'integer|min:1',
             'date' => 'nullable|date',
+            'borrow_sign' => 'required|string',
         ]);
 
         DB::beginTransaction();
@@ -53,7 +64,8 @@ class LendingController extends Controller
                 'keterangan' => $request->keterangan,
                 'date' => $request->date ?? now(),
                 'returned' => false,
-                'edited_by' => auth()->user()->name ?? null,
+                'edited_by' => Auth::user()?->name ?? null,
+                'borrow_sign' => $request->borrow_sign,
             ]);
 
 
@@ -118,6 +130,65 @@ class LendingController extends Controller
      */
     public function update(Request $request, Lending $lending)
     {
+        if ($request->has('return_item_id')) {
+            $request->validate([
+                'return_item_id' => 'required|exists:items,id',
+                'qty_return' => 'required|integer|min:1',
+                'return_sign' => 'required|string'
+            ]);
+
+            DB::beginTransaction();
+
+            try {
+                $itemId = $request->return_item_id;
+                $qtyReturn = $request->qty_return;
+
+                $pivot = DB::table('lending_items')
+                    ->where('lending_id', $lending->id)
+                    ->where('item_id', $itemId)
+                    ->first();
+
+                if (!$pivot) {
+                    throw new \Exception("Item tidak ditemukan dalam peminjaman ini.");
+                }
+
+                if ($qtyReturn > $pivot->total) {
+                    throw new \Exception("Jumlah kembali melebihi jumlah yang dipinjam.");
+                }
+
+                $item = Item::find($itemId);
+                $item->lending = max(0, $item->lending - $qtyReturn);
+                $item->save();
+
+                $newTotal = $pivot->total - $qtyReturn;
+                DB::table('lending_items')
+                    ->where('lending_id', $lending->id)
+                    ->where('item_id', $itemId)
+                    ->update(['total' => $newTotal]);
+
+                $lending->update([
+                    'return_sign' => $request->return_sign,
+                ]);
+
+                $remainingItems = DB::table('lending_items')->where('lending_id', $lending->id)->sum('total');
+                if ($remainingItems == 0) {
+                    $lending->update([
+                        'returned' => true,
+                        'return_date' => now(),
+                    ]);
+                }
+
+                DB::commit();
+
+                return redirect()->route('lendings.index')
+                    ->with('success', 'Barang berhasil dikembalikan (' . $qtyReturn . ' ' . $item->name . ')');
+            } catch (\Exception $e) {
+                DB::rollBack();
+                return back()->withErrors(['error' => $e->getMessage()]);
+            }
+        }
+
+        // Fallback or full mark returned if needed
         if ($request->has('mark_returned')) {
             if ($lending->returned) {
                 return redirect()->route('lendings.index')
@@ -131,17 +202,23 @@ class LendingController extends Controller
                     $qty = $item->pivot->total;
                     $item->lending = max(0, $item->lending - $qty);
                     $item->save();
+                    
+                    DB::table('lending_items')
+                        ->where('lending_id', $lending->id)
+                        ->where('item_id', $item->id)
+                        ->update(['total' => 0]);
                 }
 
                 $lending->update([
                     'returned' => true,
                     'return_date' => now(),
+                    // Optionally ask for signature here too if we wanted full return button, but we replace the button so this fallback is just in case
                 ]);
 
                 DB::commit();
 
                 return redirect()->route('lendings.index')
-                    ->with('success', 'Data peminjaman berhasil dikembalikan.');
+                    ->with('success', 'Data peminjaman berhasil dikembalikan seluruhnya.');
             } catch (\Exception $e) {
                 DB::rollBack();
                 return back()->withErrors(['error' => $e->getMessage()]);
