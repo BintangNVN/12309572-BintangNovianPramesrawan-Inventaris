@@ -5,12 +5,18 @@
 @section('content')
 <div class="container-fluid">
 
-   {{-- nama item --}}
-    <div class="mb-3">
-        <h4>Lending Table</h4>
-    </div>
-    <div class="mb-4 ">
-        <p>Data of <span class="text-danger">.lendings</span></p>
+    {{-- Header + Back Button --}}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h4 class="mb-0">Lending Table</h4>
+            <p class="text-muted mb-0">
+                Data of <span class="text-danger">.lendings</span>
+            </p>
+        </div>
+
+        <a href="{{ route('items.index') }}" class="btn btn-secondary btn-sm">
+            <i class="fa-solid fa-arrow-left me-1"></i> Back
+        </a>
     </div>
 
     <div class="card shadow-sm">
@@ -42,7 +48,9 @@
                                 <td>{{ $itemDetail->pivot->total }}</td>
 
                                 @if($loop->first)
-                                    <td rowspan="{{ $lending->items->count() }}">{{ $lending->name }}</td>
+                                    <td rowspan="{{ $lending->items->count() }}">
+                                        {{ $lending->name }}
+                                    </td>
 
                                     <td class="text-center" rowspan="{{ $lending->items->count() }}">
                                         {{ $lending->keterangan ?? '-' }}
@@ -67,7 +75,6 @@
                                     <td class="text-center" rowspan="{{ $lending->items->count() }}">
                                         {{ $lending->edited_by ?? '-' }}
                                     </td>
-
                                 @endif
                             </tr>
                         @endforeach

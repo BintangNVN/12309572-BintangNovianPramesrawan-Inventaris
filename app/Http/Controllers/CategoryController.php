@@ -12,7 +12,7 @@ class CategoryController extends Controller
      */
     public function index()
     {
-         $categories = Category::withCount('items')->get();
+        $categories = Category::withCount('items')->get();
         return view('admin.Category.index', compact('categories'));
     }
 
@@ -29,14 +29,26 @@ class CategoryController extends Controller
      */
     public function store(Request $request)
     {
+        // validasi dasar
         $request->validate([
             'name' => 'required|string|max:255',
             'division' => 'required|in:Sarpras,Tata usaha,Tefa',
         ]);
 
+        // cek duplicate (case insensitive)
+        $exists = Category::whereRaw('LOWER(name) = ?', [strtolower($request->name)])
+            ->exists();
+
+        if ($exists) {
+            return back()->withErrors([
+                'name' => 'Kategori sudah ada, tidak boleh duplikat!'
+            ])->withInput();
+        }
+
         Category::create($request->only('name', 'division'));
 
-        return redirect()->route('categories.index')->with('success', 'Category created successfully.');
+        return redirect()->route('categories.index')
+            ->with('success', 'Category created successfully.');
     }
 
     /**
@@ -52,7 +64,7 @@ class CategoryController extends Controller
      */
     public function edit($id)
     {
-        $category = Category::findorFail($id);
+        $category = Category::findOrFail($id);
         return view('admin.Category.edit', compact('category'));
     }
 
@@ -60,23 +72,39 @@ class CategoryController extends Controller
      * Update the specified resource in storage.
      */
     public function update(Request $request, $id)
-{
-    $request->validate([
-        'name' => 'required|string|max:255',
-        'division' => 'required|in:Sarpras,Tata usaha,Tefa',
-    ]);
+    {
+        // validasi dasar
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'division' => 'required|in:Sarpras,Tata usaha,Tefa',
+        ]);
 
-    $category = Category::findOrFail($id);
-    $category->update($request->only('name', 'division'));
+        // cek duplicate (case insensitive, kecuali dirinya sendiri)
+        $exists = Category::whereRaw('LOWER(name) = ?', [strtolower($request->name)])
+            ->where('id', '!=', $id)
+            ->exists();
 
-    return redirect()->route('categories.index')->with('success', 'Category updated successfully.');
-}
+        if ($exists) {
+            return back()->withErrors([
+                'name' => 'Kategori sudah ada, tidak boleh duplikat!'
+            ])->withInput();
+        }
+
+        $category = Category::findOrFail($id);
+        $category->update($request->only('name', 'division'));
+
+        return redirect()->route('categories.index')
+            ->with('success', 'Category updated successfully.');
+    }
 
     /**
      * Remove the specified resource from storage.
      */
     public function destroy(Category $category)
     {
-        //
+        $category->delete();
+
+        return redirect()->route('categories.index')
+            ->with('success', 'Category deleted successfully.');
     }
 }
